@@ -18,9 +18,6 @@ from app.api.v1.models import router as models_router
 from app.api.v1.images import router as images_router
 from app.api.admin.manage import router as admin_router
 from app.services.mcp import mcp
-from app.services.grok.stats import stats_service
-from app.core.session import session_manager
-from app.core.middleware import RequestTracingMiddleware
 
 # 0. 兼容性检测
 try:
@@ -87,11 +84,6 @@ async def lifespan(app: FastAPI):
     await request_logger.init()
     logger.info("[Grok2API] 统计和日志数据加载完成")
     
-    # 3.7. 初始化增强统计服务和会话管理
-    await stats_service.init_redis()
-    await session_manager.start_cleanup_task()
-    logger.info("[Grok2API] 增强统计和会话管理初始化完成")
-    
     # 4. 启动批量保存任务
     await token_manager.start_batch_save()
 
@@ -114,11 +106,6 @@ async def lifespan(app: FastAPI):
         await token_manager.shutdown()
         logger.info("[Token] Token管理器已关闭")
         
-        # 2.5. 关闭会话管理和统计服务
-        await session_manager.stop_cleanup_task()
-        await stats_service.shutdown()
-        logger.info("[Session/Stats] 增强服务已关闭")
-        
         # 3. 关闭核心服务
         await storage_manager.close()
         logger.info("[Grok2API] 应用关闭成功")
@@ -126,21 +113,18 @@ async def lifespan(app: FastAPI):
 
 # 初始化日志
 logger.info("[Grok2API] 应用正在启动...")
-logger.info("[Grok2API] Fork 版本维护: @Tomiya233 + @smysle 增强")
+logger.info("[Grok2API] Fork 版本维护: @Tomiya233")
 
 # 创建FastAPI应用
 app = FastAPI(
     title="Grok2API",
     description="Grok API 转换服务",
-    version="1.4.0-merged",
+    version="1.4.0",
     lifespan=lifespan
 )
 
 # 注册全局异常处理器
 register_exception_handlers(app)
-
-# 添加请求追踪中间件
-app.add_middleware(RequestTracingMiddleware)
 
 # 注册路由
 app.include_router(chat_router, prefix="/v1")
