@@ -18,6 +18,11 @@ async def get_image(img_path: str):
         img_path: 文件路径（格式：users-xxx-generated-xxx-image.jpg）
     """
     try:
+        # 检查路径是否为空或无效
+        if not img_path or not img_path.strip() or img_path.strip() in ['/', '.', '..']:
+            logger.warning(f"[MediaAPI] 无效路径: '{img_path}'")
+            raise HTTPException(status_code=400, detail="Invalid path")
+        
         # 转换路径（短横线→斜杠）
         original_path = "/" + img_path.replace('-', '/')
 
@@ -31,7 +36,7 @@ async def get_image(img_path: str):
             cache_path = image_cache_service.get_cached(original_path)
             media_type = "image/jpeg"
 
-        if cache_path and cache_path.exists():
+        if cache_path and cache_path.exists() and cache_path.is_file():
             logger.debug(f"[MediaAPI] 返回缓存: {cache_path}")
             return FileResponse(
                 path=str(cache_path),
